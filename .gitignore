@@ -1,0 +1,11 @@
+.history
+.vscode
+.ide
+
+
+node_modules
+coverage
+api
+
+data.json
+yarn-error.log
