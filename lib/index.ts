@@ -1,33 +1,48 @@
 import fs from "fs";
 import http from "http";
 import data from "../data.json";
-import { transverter } from "./utils";
-import { FieldType } from "./utils/enum";
+import { gen, parseDefinitions, parseParameters, transverter } from "./utils";
+import { FieldType, FieldTypeKey } from "./utils/enum";
 
 // .on("error", (e) => {
 //   console.error(`Got error: ${e.message}`);
 // });
-interface ApiDoc {
+export interface ApiDoc {
   swagger: string;
   info: any;
   host: string;
   basePath: string;
   paths: Record<string, { [x: string]: ApiInfo }>;
   tags: Array<{ name: string }>;
+  definitions: {
+    [key: string]: {
+      type: "";
+      properties: Record<
+        string,
+        {
+          type: FieldTypeKey;
+        }
+      >;
+    };
+  };
 }
 
-type ApiInfo = {
+export type ApiInfo = {
   tags: Array<string>;
   summary: string;
   operationId: string;
   parameters?: Array<{
     name: string;
-    in: "query" | "body";
+    in: "query" | "body" | "formData";
     description: string;
     required: boolean;
-    type: "integer";
+    type: FieldTypeKey;
     schema: {
-      type: "integer";
+      $ref?: string;
+      type: FieldTypeKey;
+      items: {
+        type: FieldTypeKey;
+      };
     };
     format: string;
   }>;
@@ -79,11 +94,17 @@ function getApiDoc() {
 }
 const baseDir = "./api";
 function generatorApis() {
-  const { paths, tags } = data as unknown as ApiDoc;
+  const { paths, tags, definitions } = data as unknown as ApiDoc;
   if (!fs.existsSync(baseDir)) {
     fs.mkdirSync(baseDir);
   }
 
+  // 处理body中的json数据
+
+  const typingContent = parseDefinitions(definitions);
+  fs.writeFileSync(baseDir + '/typing.ts', typingContent, "utf-8");
+  return;
+  // 处理url
   for (const path in paths) {
     const apiFile = path.substring(0, path.indexOf("/", 1));
 
@@ -91,62 +112,25 @@ function generatorApis() {
     if (!fs.existsSync(file)) {
       fs.writeFileSync(file, `import { apiRequest } from './helper'`, "utf-8");
     } else {
+      // return;
       // fs.writeFileSync(file, `import { apiRequest } from './helper'`, "utf-8");
     }
+
+    /**
+     * @constant 函数名
+     *
+     */
     const fnName = transverter(path);
 
     for (const method in paths[path]) {
       const apiInfo: ApiInfo = paths[path][method];
 
-      let data = "",
-        params = "";
-      apiInfo.parameters?.forEach((item) => {
-        // params
-        if (item.in === "query") {
-          params += `${item.name}: ${
-            FieldType[item.type || item.schema.type]
-          }, `;
-          // data
-        } else if (item.in === "body") {
-          data += `${item.name}: ${FieldType[item.type || item.schema.type]}, `;
-        }
-      });
+      let [params, data] = parseParameters(apiInfo.parameters);
 
-      params && (params = `{ ${params} }`);
-      data && (data = `{ ${data} }`);
-      const fn = `
-/**
- * @description ${(apiInfo.tags, apiInfo.summary)}
- * @operationId ${apiInfo.operationId}
- * @params ${params}
- * @data ${data}
-*/
-export function ${fnName}(${data && "data: " + data}${
-        params && "params: " + params
-      }){
-  return apiRequest({
-    method: '${method}',
-    url: '${path}',
-    ${params && `params,
-  `}${data && `data,
-  `}})
-}
-`;
+      const fn = gen(fnName, method, path, data, params, apiInfo);
       fs.appendFileSync(file, fn);
     }
   }
-  // Object.keys(paths).forEach((path) => {
-
-  //   const apis = paths[path as any];
-  //   for (const key in apis) {
-  //     console.log(typeof path, key, "key");
-  //     return
-  //     const fn = `
-  //   export const ${path.replaceAll("/", "_")} = ${key}
-  //   `;
-  //     fs.appendFileSync(baseDir + apiDir + ".ts", "");
-  //   }
-  // });
 }
 
 generatorApis();

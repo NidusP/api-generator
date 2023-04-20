@@ -1,6 +1,7 @@
 export enum FieldType {
   integer = 'number',
-  string = 'string'
+  string = 'string',
+  array = '[]'
 }
 
 export type FieldTypeKey =  keyof typeof FieldType
