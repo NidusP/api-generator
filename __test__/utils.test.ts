@@ -1,4 +1,4 @@
-import { transverter } from "../lib/utils";
+import { transverter } from "../src/utils";
 
 describe("transverter path", () => {
   it("url -> fnName", () => {
