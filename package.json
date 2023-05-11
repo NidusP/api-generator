@@ -1,6 +1,6 @@
 {
-  "name": "api-generator",
-  "version": "1.0.0",
+  "name": "@populus/api-generator",
+  "version": "1.0.1",
   "main": "./bin/api-generator.js",
   "license": "MIT",
   "scripts": {
@@ -8,6 +8,12 @@
     "build": "tsc",
     "test": "jest"
   },
+  "homepage": "https://github.com/NidusP/api-generator",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:NidusP/api-generator.git"
+  },
+  "keywords": ["swagger", "api", "api-generator"],
   "files": [
     "bin"
   ],
@@ -30,5 +36,9 @@
   "dependencies": {
     "@types/jest": "^29.5.0",
     "commander": "^10.0.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
